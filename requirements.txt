@@ -1,0 +1,9 @@
+dashboard 
+
+patients management - name , email
+
+medicine manangement - medicine name , description , quantity , amount 
+
+prescription - doctor - no billing - name , phone number , cause by patient , general issues ( dropdown ) , medicine ,quantity , doses
+
+billing - name , number , medicine quantiy , rate ( calculation algo ) 
