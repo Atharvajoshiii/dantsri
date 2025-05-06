@@ -101,7 +101,7 @@ interface MenuItem {
   icon: React.ElementType;
 }
 
-export function AppSidebar({ children }: { children: React.ReactNode }): React.ReactElement {
+export function AppSidebar({ children }: { children?: React.ReactNode }): React.ReactElement {
   const router = useRouter();
   const [activeItem, setActiveItem] = useState<string>("patient-management");
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
@@ -141,16 +141,22 @@ export function AppSidebar({ children }: { children: React.ReactNode }): React.R
     { id: "generate-prescription", title: "Generate Prescription", url: "/admin/prescription", icon: FileText },
   ];
 
-  const handleItemClick = (id: string, url: string): void => {
-    // Set active item
-    setActiveItem(id);
-    
-    // Navigate to the URL
-    router.push(url);
-    
-    // Close sidebar on mobile after navigation
-    if (isMobile) {
-      setIsExpanded(false);
+  const handleItemClick = async (id: string, url: string): Promise<void> => {
+    try {
+      // Set active item
+      setActiveItem(id);
+      
+      // Use router.push with proper error handling
+      await router.push(url);
+      
+      // Close sidebar on mobile after navigation
+      if (isMobile) {
+        setIsExpanded(false);
+      }
+    } catch (error: unknown) {
+      console.error('Error during navigation:', error);
+      // Fallback to window.location if there's an error
+      window.location.href = url;
     }
   };
 

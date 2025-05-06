@@ -205,45 +205,45 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, medicines, 
       const discountValue = parseFloat(value) || 0;
       // Limit discount to 0-100%
       const clampedDiscount = Math.min(Math.max(discountValue, 0), 100);
-      setBillData({
-        ...billData,
+      setBillData(prev => ({
+        ...prev,
         [name]: clampedDiscount,
-      });
+      }));
     } else if (name === 'consultationFee') {
       const feeValue = parseFloat(value) || 0;
-      setBillData({
-        ...billData,
+      setBillData(prev => ({
+        ...prev,
         [name]: feeValue,
-      });
+      }));
     } else if (name === 'amountPaid') {
       // Handle amount paid - ensure it doesn't exceed total
       const amountValue = parseFloat(value) || 0;
       // Limit amount paid to total amount
       const clampedAmount = Math.min(Math.max(amountValue, 0), totalAmount);
-      setBillData({
-        ...billData,
+      setBillData(prev => ({
+        ...prev,
         [name]: clampedAmount,
-      });
+      }));
     } else if (name === 'paymentStatus' && value !== 'Partial Payment') {
       // If changing from partial payment to full payment or pending
       if (value === 'Full Payment') {
-        setBillData({
-          ...billData,
+        setBillData(prev => ({
+          ...prev,
           [name]: value,
           amountPaid: totalAmount, // Set to full amount if full payment
-        });
+        }));
       } else {
-        setBillData({
-          ...billData,
+        setBillData(prev => ({
+          ...prev,
           [name]: value,
           amountPaid: 0, // Set to 0 if payment pending
-        });
+        }));
       }
     } else {
-      setBillData({
-        ...billData,
+      setBillData(prev => ({
+        ...prev,
         [name]: value,
-      });
+      }));
     }
   };
 
@@ -254,23 +254,23 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, medicines, 
       // If selecting from dropdown, update price too
       const selectedProcedure = defaultDentalProcedures.find(proc => proc.name === value);
       if (selectedProcedure) {
-        setNewProcedure({
-          ...newProcedure,
+        setNewProcedure(prev => ({
+          ...prev,
           description: value,
           unitPrice: selectedProcedure.price,
-        });
+        }));
       } else {
-        setNewProcedure({
-          ...newProcedure,
-          [name]: value,
-        });
+        setNewProcedure(prev => ({
+          ...prev,
+          description: value,
+        }));
       }
     } else {
       const numValue = name === 'quantity' ? Math.max(1, parseInt(value) || 1) : parseFloat(value) || 0;
-      setNewProcedure({
-        ...newProcedure,
+      setNewProcedure(prev => ({
+        ...prev,
         [name]: numValue,
-      });
+      }));
     }
   };
 
@@ -301,21 +301,19 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, medicines, 
   };
 
   const updateBillItem = (id: number, field: string, value: number | string) => {
-    const updatedItems = billItems.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-        
-        // Recalculate total if quantity or unitPrice changes
-        if (field === 'quantity' || field === 'unitPrice') {
-          updatedItem.total = updatedItem.quantity * updatedItem.unitPrice;
+    setBillItems(prevItems => 
+      prevItems.map(item => {
+        if (item.id === id) {
+          const updatedItem = { ...item, [field]: value };
+          // Recalculate total if quantity or unitPrice changes
+          if (field === 'quantity' || field === 'unitPrice') {
+            updatedItem.total = updatedItem.quantity * updatedItem.unitPrice;
+          }
+          return updatedItem;
         }
-        
-        return updatedItem;
-      }
-      return item;
-    });
-    
-    setBillItems(updatedItems);
+        return item;
+      })
+    );
   };
 
   const handleGenerateBill = async () => {

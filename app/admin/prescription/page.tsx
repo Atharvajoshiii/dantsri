@@ -143,13 +143,22 @@ const PrescriptionPage = () => {
   }, [saveSuccess]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prevData => ({
+      ...prevData,
+      [name]: value
+    }));
   };
 
   const handleMedicineChange = (index: number, field: keyof MedicineEntry, value: string) => {
-    const updatedMedicines = [...medicines];
-    updatedMedicines[index][field] = value;
-    setMedicines(updatedMedicines);
+    setMedicines(prevMedicines => {
+      const updatedMedicines = [...prevMedicines];
+      updatedMedicines[index] = {
+        ...updatedMedicines[index],
+        [field]: value
+      };
+      return updatedMedicines;
+    });
   };
 
   const addMedicine = () => {
@@ -347,29 +356,25 @@ const PrescriptionPage = () => {
     }
   }, [pdfUrl, formData.patientName]);
 
-  // Modified useEffect to include formData in dependencies
+  // Only run this effect once on mount to prefill form data from URL params
   useEffect(() => {
-    // Check for URL parameters and prefill form
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      
-      const newFormData = { ...formData };
-      
-      // Get basic patient info
-      if (params.get('patientName')) newFormData.patientName = params.get('patientName') || '';
-      if (params.get('age')) newFormData.age = params.get('age') || '';
-      if (params.get('sex')) newFormData.sex = params.get('sex') || '';
-      if (params.get('phoneNumber')) newFormData.phoneNumber = params.get('phoneNumber') || '';
-      
-      // Get medical info
-      if (params.get('chiefComplaint')) newFormData.cc = params.get('chiefComplaint') || '';
-      if (params.get('medicalHistory')) newFormData.mh = params.get('medicalHistory') || '';
-      if (params.get('diagnosis')) newFormData.de = params.get('diagnosis') || '';
-      
-      // Update form data with prefilled values
-      setFormData(newFormData);
+      const newFormData: FormData = {
+        patientName: params.get('patientName') || '',
+        age: params.get('age') || '',
+        sex: params.get('sex') || '',
+        phoneNumber: params.get('phoneNumber') || '',
+        date: formData.date, // keep current date
+        cc: params.get('chiefComplaint') || '',
+        mh: params.get('medicalHistory') || '',
+        de: params.get('diagnosis') || '',
+        advice: '',
+        followupDate: '',
+      };
+      setFormData(prev => ({ ...prev, ...newFormData }));
     }
-  }, [formData]);  // Added formData to dependencies
+  }, []); // Only run once on mount
 
   return (
     <div className="w-[80vw] mx-auto mt-8 p-4">
