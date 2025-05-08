@@ -15,6 +15,8 @@ interface MedicineEntry {
   duration: string;
 }
 
+
+
 // Define dental disease options
 const DENTAL_DISEASES = [
   "Dental Caries",

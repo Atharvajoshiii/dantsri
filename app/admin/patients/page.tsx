@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getAllPrescriptions, Prescription as PrescriptionType } from '@/services/prescription';
+import { deletePatient, updatePatient } from '@/services/patients';
 import Link from 'next/link';
 
 // Group prescriptions by patient name to create a patient list
@@ -24,8 +25,18 @@ const ViewPatients = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const patientsPerPage = 10;
+
+  // Add new state for edit form
+  const [editForm, setEditForm] = useState({
+    name: '',
+    phone_number: '',
+    age: '',
+    sex: ''
+  });
 
   useEffect(() => {
     fetchPatients();
@@ -130,6 +141,49 @@ const ViewPatients = () => {
   const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  // Add new functions for edit and delete
+  const handleEdit = (patient: Patient) => {
+    setEditingPatient(patient);
+    setEditForm({
+      name: patient.name,
+      phone_number: patient.phone_number,
+      age: patient.age,
+      sex: patient.sex
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleDelete = async (patient: Patient) => {
+    if (window.confirm('Are you sure you want to delete this patient?')) {
+      try {
+        await deletePatient(patient.id);
+        // Refresh the patient list
+        fetchPatients();
+      } catch (err) {
+        console.error('Failed to delete patient:', err);
+        setError('Failed to delete patient. Please try again.');
+      }
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPatient) return;
+
+    try {
+      await updatePatient(editingPatient.id, {
+        ...editForm,
+        age: parseInt(editForm.age, 10)
+      });
+      setIsEditModalOpen(false);
+      // Refresh the patient list
+      fetchPatients();
+    } catch (err) {
+      console.error('Failed to update patient:', err);
+      setError('Failed to update patient. Please try again.');
+    }
+  };
 
   return (
     <div className="w-[80vw] mx-auto mt-8 p-4">
@@ -254,6 +308,18 @@ const ViewPatients = () => {
                           className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
                         >
                           View Details
+                        </button>
+                        <button
+                          onClick={() => handleEdit(patient)}
+                          className="px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(patient)}
+                          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition"
+                        >
+                          Delete
                         </button>
                         <Link href={`/admin/prescription?patientName=${encodeURIComponent(patient.name)}&phone=${encodeURIComponent(patient.phone_number)}&age=${patient.age}&sex=${patient.sex}&medicalHistory=${encodeURIComponent(patient.prescriptions[0]?.medical_history || '')}&chiefComplaint=${encodeURIComponent(patient.prescriptions[0]?.chief_complaint || '')}&diagnosis=${encodeURIComponent(patient.prescriptions[0]?.diagnosis || '')}`}>
                           <button className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">
@@ -517,6 +583,110 @@ const ViewPatients = () => {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Edit Modal */}
+      {isEditModalOpen && editingPatient && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={() => setIsEditModalOpen(false)}></div>
+            </div>
+
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <form onSubmit={handleEditSubmit}>
+                <div className="bg-blue-600 px-6 py-4 flex justify-between items-center">
+                  <h3 className="text-xl font-semibold text-white">
+                    Edit Patient
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="text-white hover:text-gray-300 focus:outline-none"
+                  >
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+                      <input
+                        type="text"
+                        id="name"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone Number</label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        value={editForm.phone_number}
+                        onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="age" className="block text-sm font-medium text-gray-700">Age</label>
+                      <input
+                        type="text"
+                        id="age"
+                        value={editForm.age}
+                        onChange={(e) => setEditForm({ ...editForm, age: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="sex" className="block text-sm font-medium text-gray-700">Sex</label>
+                      <select
+                        id="sex"
+                        value={editForm.sex}
+                        onChange={(e) => setEditForm({ ...editForm, sex: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        required
+                      >
+                        <option value="">Select sex</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="submit"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
