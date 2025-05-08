@@ -114,6 +114,7 @@ export const updatePrescription = async (id: string, updates: Partial<Prescripti
  * @param id The ID of the prescription to delete
  * @returns true if successful
  */
+
 export const deletePrescription = async (id: string) => {
   const { error } = await supabase
     .from('prescriptions')

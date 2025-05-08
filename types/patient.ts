@@ -5,4 +5,5 @@ export interface Patient {
     sex: string;
     phone_number: string;
     created_at?: string;
+    updated_at?: string;
 }
