@@ -312,24 +312,24 @@ export default function AddMedicinePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <p className="text-sm text-blue-700">Total Medicines</p>
-                  <p className="text-2xl font-bold text-blue-800">{medicines.length}</p>
+                  <p className="text-2xl font-bold text-blue-800">{sortedMedicines.length}</p>
                 </div>
                 <div className="bg-green-50 p-4 rounded-lg">
                   <p className="text-sm text-green-700">Total Value</p>
                   <p className="text-2xl font-bold text-green-800">
-                    ${medicines.reduce((total, med) => total + (med.quantity * med.rate), 0).toFixed(2)}
+                    Rs. {sortedMedicines.reduce((total, med) => total + (med.quantity * med.rate), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <p className="text-sm text-yellow-700">Low Stock</p>
                   <p className="text-2xl font-bold text-yellow-800">
-                    {medicines.filter(med => med.quantity < 10).length}
+                    {sortedMedicines.filter(med => med.quantity < 10).length}
                   </p>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg">
                   <p className="text-sm text-purple-700">Companies</p>
                   <p className="text-2xl font-bold text-purple-800">
-                    {new Set(medicines.map(med => med.company).filter(Boolean)).size}
+                    {new Set(sortedMedicines.map(med => med.company).filter(Boolean)).size}
                   </p>
                 </div>
               </div>
@@ -420,7 +420,8 @@ export default function AddMedicinePage() {
                               {medicine.company || "-"}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${medicine.quantity <= 5
+                              <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                medicine.quantity < 10
                                   ? 'bg-red-100 text-red-800'
                                   : medicine.quantity <= 20
                                     ? 'bg-yellow-100 text-yellow-800'
@@ -430,7 +431,7 @@ export default function AddMedicinePage() {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              ${medicine.rate.toFixed(2)}
+                              Rs. {medicine.rate.toFixed(2)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <button

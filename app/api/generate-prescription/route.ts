@@ -117,6 +117,30 @@ export async function POST(req: NextRequest) {
     // Oral Examination (O/E) - This replaces the Diagnosis field in the PDF template
     let oralExamText = 'None';
     
+    // Handle teeth information for prescription
+    if (data.selectedTeeth && data.selectedTeeth.length > 0) {
+      const teethInfo = data.selectedTeeth.map(tooth => {
+        const toothId = tooth.id.toString();
+        const quadrant = toothId[0];
+        const number = parseInt(toothId.slice(1));
+        
+        // Convert numbers 9-13 to letters A-E directly
+        let displayId;
+        if (number >= 9 && number <= 13) {
+          const letterIndex = number - 9; // 9->0, 10->1, 11->2, etc.
+          const letter = String.fromCharCode('A'.charCodeAt(0) + letterIndex);
+          displayId = `${quadrant}${letter}`;
+        } else {
+          displayId = toothId;
+        }
+    
+        return `#${displayId} (${tooth.disease})`;
+      }).join('; ');
+    
+      // Update dental notation with converted IDs
+      data.dentalNotation = teethInfo;
+    }
+
     // Prepare oral examination text with teeth information and clinical notes
     if (data.dentalNotation || data.clinicalNotes) {
       const teethInfo = data.dentalNotation ? `Teeth involved: ${data.dentalNotation}` : '';
@@ -251,8 +275,8 @@ export async function POST(req: NextRequest) {
     // Serialize the PDFDocument to bytes
     const pdfBytes = await pdfDoc.save();
     
-    // Return the PDF as response
-    return new NextResponse(pdfBytes, {
+    // Return the PDF as response with proper type conversion
+    return new NextResponse(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename=prescription-${data.patientName.replace(/\s+/g, '-')}.pdf`,

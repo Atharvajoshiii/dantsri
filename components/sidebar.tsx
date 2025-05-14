@@ -1,7 +1,8 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { Inbox, Menu, X, ChevronRight, Pill, FileText } from "lucide-react";
+import { Inbox, Menu, X, ChevronRight, Pill, FileText, LogOut } from "lucide-react";
 import { useRouter } from 'next/navigation';
+import { supabase } from "@/lib/supabaseClient";
 
 interface CustomSidebarProps {
   children: React.ReactNode;
@@ -107,6 +108,7 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [animateItems, setAnimateItems] = useState<boolean>(false);
+  const [userEmail, setUserEmail] = useState<string>("");
 
   useEffect(() => {
     const checkViewport = (): void => {
@@ -116,24 +118,32 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
       }
     };
 
-    // Set active item based on current path
-    const path = window.location.pathname;
-    if (path.includes('/admin/medicines')) {
-      setActiveItem('medicine-management');
-    } else if (path.includes('/admin/prescription')) {
-      setActiveItem('generate-prescription');
-    } else if (path.includes('/admin/patients')) {
-      setActiveItem('patient-management');
-    }
+    const checkAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error || !session) {
+          router.push('/');
+          return;
+        }
+        
+        if (session.user?.email) {
+          setUserEmail(session.user.email);
+        }
+      } catch (error) {
+        console.error('Auth error:', error);
+        router.push('/login');
+      }
+    };
 
+    checkAuth();
     checkViewport();
     window.addEventListener('resize', checkViewport);
     
-    // Trigger animation after component mount
     setTimeout(() => setAnimateItems(true), 100);
     
     return () => window.removeEventListener('resize', checkViewport);
-  }, []);
+  }, [router]);
 
   const items: MenuItem[] = [
     { id: "patient-management", title: "Patient Management", url: "/admin/patients", icon: Inbox },
@@ -157,6 +167,15 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
       console.error('Error during navigation:', error);
       // Fallback to window.location if there's an error
       window.location.href = url;
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
     }
   };
 
@@ -230,24 +249,41 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
         </div>
 
         {isExpanded ? (
-          <div className="mt-auto p-4 border-t border-gray-700/50 fade-slide-up" style={{ animationDelay: '300ms' }}>
-            <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700/50 transition-all cursor-pointer group">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
-                <span className="font-medium text-sm">AJ</span>
+          <div className="mt-auto p-4 border-t border-gray-700/50">
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-800/30">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center">
+                  <span className="font-medium text-sm text-white">{userEmail ? userEmail.substring(0, 2).toUpperCase() : ''}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white truncate">{userEmail}</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Atharva Joshi</p>
-                <p className="text-xs text-gray-400">admin@dantsri.com</p>
-              </div>
+              
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-2 p-3 rounded-lg text-gray-300 hover:bg-red-500/20 hover:text-red-400 transition-all duration-300"
+              >
+                <LogOut className="w-5 h-5" />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         ) : (
-          <div className="mt-auto p-4 flex justify-center fade-in">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={toggleSidebar}>
-              <span className="font-medium text-sm">AJ</span>
+          <div className="mt-auto p-4 flex flex-col items-center space-y-4">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center cursor-pointer" title={userEmail}>
+              <span className="font-medium text-sm text-white">{userEmail ? userEmail.substring(0, 2).toUpperCase() : ''}</span>
             </div>
+            <button
+              onClick={handleLogout}
+              className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-300 hover:bg-red-500/20 hover:text-red-400 transition-all duration-300"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         )}
+
       </CustomSidebar>
 
       {isMobile && !isExpanded && (
